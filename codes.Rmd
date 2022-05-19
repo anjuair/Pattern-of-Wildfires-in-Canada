@@ -1,0 +1,136 @@
+---
+title: "Pattern of Wildfires in Canadian ecozones "
+author: "Anju Air"
+date: '2022-04-08'
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# reading the file
+library(dplyr)
+library(sf)
+
+# data source: http://www.ciffc.ca
+#reading point shapefile
+fire<-st_read("C:/Users/anjua/Desktop/GG501_Spatial knowledge mobilization/Term project/fire/NFDB_point_20210916.shp")
+
+```
+
+
+
+```{r}
+
+#creating fire subset data for provincial fire pattern analysis
+prov <- c("BC","AB","SK","MB","ON","QC","NL","NS","NT","YT","PEI","NB")
+for(val in prov){
+  if(val == "BC"){
+    firesubset <- head(filter(fire, fire$SRC_AGENCY==val), 50000)
+  }
+  else{
+    firesubset <- rbind(firesubset, head(filter(fire, fire$SRC_AGENCY==val), 5000))
+  }
+}
+
+#This version includes Provincial fire data for years 1946-2020;
+
+#data source for fire (https://cwfis.cfs.nrcan.gc.ca/datamart/download/nfdbpnt?token=8f4cd4341b41ef55654a3993753892c7)
+#Canadian Forest Service. 2021. Canadian National Fire Database – Agency Fire Data. Natural Resources Canada, Canadian Forest Service, Northern Forestry Centre, Edmonton, Alberta. https://cwfis.cfs.nrcan.gc.ca/ha/nfdb
+```
+
+
+```{r}
+# spatial analysis for the data
+# visualizing the fire areas in relation to Size of fire,Ha
+library(tmap)
+library(tmaptools)
+tmap_mode("view")
+tm_basemap("OpenStreetMap")+
+  tm_shape(firesubset)+tm_dots("SIZE_HA",title="fire size (hectares)", palette = sf.colors(5))# Source: Natural Resource Canada
+```
+
+```{r}
+# fire points by ecological zones
+tmap_mode("view")
+tm_basemap("OpenStreetMap")+
+  tm_shape(firesubset)+tm_dots("ECOZ_NAME",title = "Ecological Zones",palette = sf.colors(5))+tm_layout(title = "Fire Impact on Ecological Zones")+
+  tm_scale_bar(position = c("left", "bottom"))
+
+```
+
+```{r}
+# fire points by province
+
+tm_basemap("OpenStreetMap")+
+ tm_shape(firesubset)+
+tm_dots("SRC_AGENCY", title = "Province",palette=sf.colors(5))+
+tm_scale_bar(position = c("left", "bottom"))+
+ tm_layout(title = "Province Wise Distribution of Fire", title.size = 1.5, legend.outside=TRUE)
+
+
+```
+
+```{r}
+
+#temporal distribution of fire decade wise
+
+tm_basemap("OpenStreetMap")+
+tm_shape(firesubset)+
+tm_dots("DECADE", title = "Decades of fire")+
+tm_scale_bar(position = c("left", "bottom"))+
+tm_layout(title = "Decade Wise Pattern of Fire", title.size = 1.5, legend.outside=TRUE)
+
+```
+
+```{r}
+#cause of fire among ecozones
+library(tidyverse)
+ggplot(firesubset)+geom_bar(aes(CAUSE,DECADE,fill=ECOZ_NAME),position="dodge",stat="Identity")+xlab("Causes of Fire")+ylab("Decades of Fire")+ggtitle("Causes of Fire among Ecozone")
+  
+  
+```
+
+
+
+```{r, echo=FALSE}
+# data creation for time series analysis
+# data frame to TS data #good one
+install.packages("TSstudio")
+install.packages("xts")
+library(TSstudio)                  
+library(xts)
+
+# creating a date column
+firesubset$date <- as.Date(firesubset$DECADE, "%Y")
+
+# creating a time series analysis for land affected by fire
+firesubset_ts<-xts(firesubset$SIZE_HA, firesubset$date)
+ts_plot(firesubset_ts,
+        title = "Temporal Variation of Affected Land Area by Fire",
+        Xtitle = "Time series (Yr)",
+        Ytitle = "Affected Area (Ha)",
+        color = "brown",
+        slider = TRUE
+)
+```
+
+```{r}
+# ecozone and date 
+# not too good work on it
+firesubset_ts1<-xts(firesubset$ECOZONE, firesubset$date)
+
+ts_plot(firesubset_ts1,
+        title = "Temporal Variation of Affected Land Area by Fire",
+        Xtitle = "Time series (Yr)",
+        Ytitle = "Affected Area (Ha)",
+        color = "brown",
+        slider = TRUE
+)
+
+```
+
+
+
+```
+
